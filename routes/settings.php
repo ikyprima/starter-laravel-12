@@ -18,4 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/Appearance');
     })->name('appearance');
+
+    Route::get('settings/skpd', [\App\Http\Controllers\Settings\SkpdController::class, 'edit'])->name('settings.skpd.edit');
+    Route::patch('settings/skpd', [\App\Http\Controllers\Settings\SkpdController::class, 'update'])->name('settings.skpd.update');
 });

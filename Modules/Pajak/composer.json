@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/pajak",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Pajak\\": "app/",
+            "Modules\\Pajak\\Database\\Factories\\": "database/factories/",
+            "Modules\\Pajak\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Pajak\\Tests\\": "tests/"
+        }
+    }
+}

@@ -33,6 +33,8 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $request->session()->put('tahun', $request->tahun);
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

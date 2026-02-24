@@ -8,6 +8,15 @@ import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+
+const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - 2 + i).toString()); // Current +- 2 years
 
 defineProps<{
     status?: string;
@@ -17,6 +26,7 @@ defineProps<{
 const form = useForm({
     email: '',
     password: '',
+    tahun: new Date().getFullYear().toString(),
     remember: false,
 });
 
@@ -71,17 +81,47 @@ const submit = () => {
                     <InputError :message="form.errors.password" />
                 </div>
 
+                <div class="grid gap-2">
+                    <Label for="tahun">Tahun Anggaran</Label>
+                    <Select v-model="form.tahun">
+                        <SelectTrigger id="tahun" :tabindex="3">
+                            <SelectValue placeholder="Pilih Tahun" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem v-for="year in years" :key="year" :value="year">
+                                {{ year }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <InputError :message="form.errors.tahun" />
+                </div>
+
                 <div class="flex items-center justify-between">
                     <Label for="remember" class="flex items-center space-x-3">
-                        <Checkbox id="remember" v-model="form.remember" :tabindex="3" />
+                        <Checkbox id="remember" v-model="form.remember" :tabindex="4" />
                         <span>Remember me</span>
                     </Label>
                 </div>
 
-                <Button type="submit" class="mt-4 w-full" :tabindex="4" :disabled="form.processing">
+                <Button type="submit" class="mt-4 w-full" :tabindex="5" :disabled="form.processing">
                     <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
                     Log in
                 </Button>
+
+                <div class="relative mt-4">
+                    <div class="absolute inset-0 flex items-center">
+                        <span class="w-full border-t" />
+                    </div>
+                    <div class="relative flex justify-center text-xs uppercase">
+                        <span class="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                </div>
+
+                <a :href="route('sso.redirect', { tahun: form.tahun })" class="w-full">
+                    <Button type="button" variant="outline" class="w-full mt-2 bg-indigo-500 text-white hover:bg-indigo-600 hover:text-white" :disabled="form.processing">
+                        Login SSO BPKAD
+                    </Button>
+                </a>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">

@@ -1,0 +1,11 @@
+{
+    "name": "Pajak",
+    "alias": "pajak",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Pajak\\Providers\\PajakServiceProvider"
+    ],
+    "files": []
+}

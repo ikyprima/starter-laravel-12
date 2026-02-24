@@ -12,10 +12,19 @@ class AdminController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        return Inertia::render('admin/dashboards/Index');
-        // return view('admin::index');
+        if (!$request->user()->hasRole('admin')) {
+            abort(403);
+        }
+        return Inertia::render('admin/dashboards/Index', [
+            'counts' => [
+                'skpd' => \Modules\Admin\Models\Skpd::count(),
+                'sub_skpd' => \Modules\Admin\Models\SubSkpd::count(),
+                'users' => \App\Models\User::count(),
+                'master_akun_pajak' => \Modules\Pajak\Models\MasterAkunPajak::count(),
+            ]
+        ]);
     }
 
     /**

@@ -1,8 +1,6 @@
 {
+    "Admin": true,
+    "Pajak": true,
     "Dokumen": true,
-<<<<<<< HEAD
-    "Admin": true
-=======
     "Tools": true
->>>>>>> 644518caadae7ddb89623aa038ceb4a820053a6b
 }

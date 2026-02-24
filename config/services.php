@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'sipd' => [
+        'base_url' => env('SIPD_BASE_URL', 'https://service.domain'),
+        'client_id' => env('SIPD_CLIENT_ID'),
+        'client_secret' => env('SIPD_CLIENT_SECRET'),
+    ],
+
+    'keycloak' => [
+        'client_id' => env('KEYCLOAK_CLIENT_ID'),
+        'client_secret' => env('KEYCLOAK_CLIENT_SECRET'),
+        'redirect' => env('KEYCLOAK_REDIRECT_URI'),
+        'base_url' => env('KEYCLOAK_BASE_URL'),
+        'realm' => env('KEYCLOAK_REALM'),
+        'realms' => env('KEYCLOAK_REALM'),
+    ],
+
 ];

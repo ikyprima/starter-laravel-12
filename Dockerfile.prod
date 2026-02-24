@@ -1,0 +1,72 @@
+# Stage 1: Install PHP Dependencies
+FROM composer:latest AS php-builder
+WORKDIR /app
+COPY composer.json composer.lock ./
+COPY Modules ./Modules
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --ignore-platform-reqs
+
+# Stage 2: Build Assets
+FROM node:20-slim AS node-builder
+WORKDIR /app
+COPY package.json package-lock.json* bun.lockb* ./
+RUN npm install
+COPY . .
+# Copy vendor from php-builder because Vite needs it (e.g. Ziggy)
+COPY --from=php-builder /app/vendor ./vendor
+RUN npm run build
+
+# Stage 3: Production Runtime
+FROM dunglas/frankenphp:php8.2-alpine
+
+# Install system dependencies & PHP extensions
+RUN apk add --no-cache \
+    libzip-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    libpng-dev \
+    icu-dev \
+    && install-php-extensions \
+    pdo_mysql \
+    gd \
+    intl \
+    zip \
+    opcache \
+    pcntl
+
+WORKDIR /app
+
+# Copy essential application files
+COPY app ./app
+COPY bootstrap ./bootstrap
+COPY config ./config
+COPY database ./database
+COPY public ./public
+COPY resources/views ./resources/views
+COPY routes ./routes
+COPY storage ./storage
+COPY Modules ./Modules
+COPY artisan ./
+COPY composer.json ./
+COPY modules_statuses.json ./
+
+# Copy built assets from node-builder
+COPY --from=node-builder /app/public/build ./public/build
+
+# Copy vendor from php-builder
+COPY --from=php-builder /app/vendor ./vendor
+
+# Set permissions
+RUN chown -R www-data:www-data storage bootstrap/cache public
+
+# Environment variables for production
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+ENV PHP_INI_SCAN_DIR=:$PHP_INI_DIR/conf.d
+
+# Entry point - Optimization and Start
+CMD php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000

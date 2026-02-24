@@ -25,15 +25,12 @@ class DatabaseController extends Controller
         return Inertia::render('admin/databases/Index');
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function create(): Response
     {
-
-        $dataTypes = $this->prepareDbManager('update','tes_table_master_dua');
-        return $dataTypes;
-    
+        $db = $this->prepareDbManager('create');
+        return Inertia::render('admin/databases/Form', [
+            'db' => $db
+        ]);
     }
 
     /**
@@ -141,7 +138,7 @@ class DatabaseController extends Controller
             SchemaManager::createTable($table);
 
 
-            return to_route('database.index')->with(['message'=>'Sukses Simpan Data']);
+            return to_route('admin.database-manager.index')->with(['message'=>'Sukses Simpan Data']);
             
         } catch(\Illuminate\Database\QueryException $e){
             $text= $e->getMessage();
@@ -160,23 +157,43 @@ class DatabaseController extends Controller
         return view('admin::show');
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit($id)
+    public function edit($id): Response
     {
-        return view('admin::edit');
+        $db = $this->prepareDbManager('update', $id);
+        return Inertia::render('admin/databases/Form', [
+            'db' => $db
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id) {}
+    public function update(Request $request, $id)
+    {
+        try {
+            $table = $request->all();
+            \Modules\Admin\database\DatabaseUpdater::update($table);
+
+            return to_route('admin.database-manager.index')->with(['message' => 'Sukses Update Data']);
+        } catch (\Exception $e) {
+            $errors = new MessageBag(['error' => [$e->getMessage()]]);
+            return back()->withErrors($errors);
+        }
+    }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id) {}
+    public function destroy($id)
+    {
+        try {
+            SchemaManager::dropTable($id);
+            return to_route('admin.database-manager.index')->with(['message' => 'Sukses Hapus Data']);
+        } catch (\Exception $e) {
+             $errors = new MessageBag(['error' => [$e->getMessage()]]);
+            return back()->withErrors($errors);
+        }
+    }
 
     public function listTable() {
         try {
@@ -257,6 +274,8 @@ class DatabaseController extends Controller
                     'oldName' => $item['name'],
                     'type' => $objectType,
                     'length'=>$item['length'],
+                    'precision'=>$item['precision'],
+                    'scale'=>$item['scale'],
                     'fixed'=> $item['fixed'],
                     'unsigned'=> $item['unsigned'],
                     'autoincrement'=> $item['autoincrement'],
@@ -282,19 +301,29 @@ class DatabaseController extends Controller
             // $db->table = SchemaManager::listTableDetails($table);
             $db->formAction = route('database.update', $table);
         } else {
+            $db->table = [
+                'name' => '',
+                'oldName' => '',
+                'columns' => [
+                    [
+                        'name' => 'id',
+                        'type' => ['name' => 'integer', 'category' => 'Numbers'],
+                        'length' => null,
+                        'precision' => null,
+                        'scale' => null,
+                        'fixed' => false,
+                        'unsigned' => true,
+                        'autoincrement' => true,
+                        'notnull' => true,
+                        'default' => null,
+                    ]
+                ],
+                'indexes' => [],
+                'foreignKeys' => [],
+                'options' => ['create_options' => []],
+            ];
 
-            $db->table = new Table('New Table');
-
-            // Add prefilled columns
-            $db->table->addColumn('id', 'integer', [
-                'unsigned' => true,
-                'notnull' => true,
-                'autoincrement' => true,
-            ]);
-
-            $db->table->setPrimaryKey(['id'], 'primary');
-
-            $db->formAction = route('database.store');
+            $db->formAction = route('admin.database-manager.store');
         }
 
         $oldTable = old('table');

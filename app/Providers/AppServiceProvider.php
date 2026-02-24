@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,11 +20,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if(config('app.env') === 'production') {
-            $this->app['request']->server->set('HTTPS','on');
-            \URL::forceScheme('https');
-            //  \URL::forceRootUrl(config('app.url'));
+        if(config('app.env') === 'production' && config('app.force_https', true)) {
+             $this->app['request']->server->set('HTTPS','on');
+             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        Event::listen(
+            \SocialiteProviders\Manager\SocialiteWasCalled::class,
+            [\SocialiteProviders\Keycloak\KeycloakExtendSocialite::class, 'handle']
+        );
 
     }
 }

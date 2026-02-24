@@ -1,170 +1,143 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-
-import DeleteUser from '@/components/DeleteUser.vue';
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ref, onMounted } from 'vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import MasterLayout from '@/layouts/admin/LayoutFull.vue';
-import DataTable from '@/components/DataTable.vue';
-import { type PaginatedResponse } from '@/types';
-import { h, ref, onMounted } from 'vue'
-import { type BreadcrumbItem, type SharedData, type User } from '@/types';
+import DataTable, { type DynamicButton } from '@/components/DataTable.vue';
+import { type PaginatedResponse, type BreadcrumbItem, type SharedData } from '@/types';
+import axios from 'axios';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import axios from 'axios'
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'vue-sonner';
 
 interface InterfaceListData {
-    prefix: string
-    name: string
-    slug: string | null
-    dataTypeId: string | null
+    id: string;
+    prefix: string;
+    name: string;
+    slug: string | null;
+    dataTypeId: string | null;
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Admin', 
-        href: '/admin/dashboards',
-    },
-    {
-        title: 'Database Manager',
-        href: '/admin/database-manager',
-    }
+    { title: 'Admin', href: '/admin/dashboards' },
+    { title: 'Database Manager', href: '/admin/database-manager' }
 ];
 
-const page = usePage<SharedData>();
+const listData = ref<InterfaceListData[]>([]);
+const dataResponse = ref<PaginatedResponse<InterfaceListData> | null>(null);
+const isLoading = ref(false);
 
-const listData = ref<InterfaceListData[]>([])
-const dataResponse = ref<PaginatedResponse<InterfaceListData> | null>(null)
+const isDeleteDialogOpen = ref(false);
+const itemToDeleteId = ref<string | null>(null);
 
-const isLoading = ref(false)
-const isDialogPreview = ref(false)
 const fieldsFromDB = [
     { key: 'name', label: 'Name Table', type: 'string', sortable: false },
     { key: 'prefix', label: 'Prefix', type: 'string', sortable: false },
     { key: 'slug', label: 'slug', type: 'string', sortable: false },
-]
-const buttonDinamis = [
+];
+
+const buttonDinamis: DynamicButton[] = [
     {
         label: "Tambah",
         variant: "primary",
         onClick: "handleTambah"
     }
-]
+];
 
-async function loadData(){
+async function loadData() {
     try {
-        isLoading.value = true
-
-        await axios.get(route('admin.list-table'))
-        .then((res) => {
-            dataResponse.value = res.data
-            listData.value = res.data
-        })
-        .catch((error) => {
-            //jika error.response.status Check status code
-        }).finally(() => {
-            //selesai 
-            isLoading.value = false
-        });   
-
+        isLoading.value = true;
+        const res = await axios.get(route('admin.list-table'));
+        listData.value = res.data.map((item: any) => ({
+            ...item,
+            id: item.name
+        }));
     } catch (error) {
-        console.error('Gagal load data:', error)
+        console.error('Gagal load data:', error);
+    } finally {
+        isLoading.value = false;
     }
-
 }
 
-
-function handleTambah(val: any) {
-    console.log("Tambah diklik", val);
-    isDialogPreview.value = true
+function handleTambah() {
+    router.get(route('admin.database-manager.create'));
 }
 
-
-const handlers: Record<string, (val: any) => void> = {
-    handleTambah,
+const handleEdit = (id: string) => {
+    router.get(route('admin.database-manager.edit', id));
 };
 
-function klikMethod(value: { action: string; value: any }) {
-    const methodName = value.action;
-    if (handlers[methodName]) {
-        handlers[methodName](value.value);
-    } else {
-        console.warn(`Method ${methodName} tidak ditemukan`);
-    }
-}
+const handleDelete = (id: string) => {
+    itemToDeleteId.value = id;
+    isDeleteDialogOpen.value = true;
+};
 
+const confirmDelete = async () => {
+    if (!itemToDeleteId.value) return;
+    router.delete(route('admin.database-manager.destroy', itemToDeleteId.value), {
+        onSuccess: () => {
+            toast.success('Tabel berhasil dihapus');
+            loadData();
+        },
+        onError: () => {
+            toast.error('Gagal menghapus tabel');
+        },
+        onFinish: () => {
+            isDeleteDialogOpen.value = false;
+            itemToDeleteId.value = null;
+        }
+    });
+};
+
+const clickMethod = (value: { action: string; value: any }) => {
+    if (value.action === 'handleTambah') {
+        handleTambah();
+    }
+};
 
 const handleClickPaging = async (link: string) => {
     try {
-    isLoading.value = true
-
-    await axios.get(link)
-        .then((res) => {
-            dataResponse.value = res.data.data
-            listData.value = res.data.data.data
-        })
-        .catch((error) => {
-            //jika error.response.status Check status code
-        
-        
-        }).finally(() => {
-            //selesai 
-            isLoading.value = false
-        });   
-
-        
-    
+        isLoading.value = true;
+        const res = await axios.get(link);
+        listData.value = res.data.map((item: any) => ({
+            ...item,
+            id: item.name
+        }));
     } catch (error) {
-        console.error('Gagal load data:', error)
+        console.error('Gagal load data:', error);
+    } finally {
+        isLoading.value = false;
     }
-}
+};
 
-const handleEdit = async (id : string) => {
-    console.log('Edit item selected with ID:', id)
-}
+const handleSearch = async (search: string) => {
+    isLoading.value = true;
+    try {
+        const res = await axios.get(route('admin.list-table'), {
+            params: { search }
+        });
+        listData.value = res.data.map((item: any) => ({
+            ...item,
+            id: item.name
+        }));
+    } catch (error) {
+        console.error('Search failed:', error);
+    } finally {
+        isLoading.value = false;
+    }
+};
 
-const handleSearch = async (search : string) => {
-    let url = dataResponse.value?.path??'';
-    isLoading.value = true
-    axios.get(url, {
-        params: {
-            search: search 
-        }
-    })
-    .then((res) => {
-        dataResponse.value = res.data.data
-        listData.value = res.data.data.data
-        isLoading.value = false
-    })
-    .catch((error) => {
-        //jika error.response.status Check status code
-        isLoading.value = false
-    
-    }).finally(() => {
-        //selesai 
-        isLoading.value = false
-    });   
-    
-}
-
-onMounted(async () => {
-    await loadData()
-})
-
-
+onMounted(() => {
+    loadData();
+});
 </script>
-
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -174,83 +147,39 @@ onMounted(async () => {
                 <DataTable v-if="!isLoading"
                     :data="listData" 
                     :fieldsFromDB="fieldsFromDB"
-                    :currentPage="dataResponse?.current_page??0"
-                    :totalItems="dataResponse?.total??0" 
-                    :perPage="dataResponse?.per_page??0"
-                    :paginationLinks="dataResponse?.links??[]"
-                    :firstPageUrl="dataResponse?.first_page_url??''"
-                    :lastPageUrl="dataResponse?.last_page_url??''"
+                    :currentPage="dataResponse?.current_page ?? 0"
+                    :totalItems="dataResponse?.total ?? listData.length" 
+                    :perPage="dataResponse?.per_page ?? 10"
+                    :paginationLinks="dataResponse?.links ?? []"
+                    :firstPageUrl="dataResponse?.first_page_url ?? ''"
+                    :lastPageUrl="dataResponse?.last_page_url ?? ''"
                     :buttonDinamis="buttonDinamis"
                     @edits="handleEdit"
+                    @delete="handleDelete"
                     @clickPaging="handleClickPaging"
                     @search="handleSearch"
-                    @button-click="klikMethod"
-                    />
+                    @button-click="clickMethod"
+                />
+                <div v-else class="flex justify-center py-10">
+                    <span>Loading...</span>
+                </div>
             </div>
-            <Dialog v-model:open="isDialogPreview">
-            
-                <DialogContent class="sm:max-w-[425px] grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh] min-h-[90vh] min-w-[95vw]">
-                    <DialogHeader class="p-6 pb-0">
-                        <DialogTitle>Tambah Table Baru</DialogTitle>
-                        
-                        <hr class="h-0.5 my-4 bg-gray-200 border-0 dark:bg-gray-700">
-                    </DialogHeader>
-                    <div class="grid grid-rows-6">
-                        <div class="grid grid-flow-col grid-rows-3 gap-4 px-6">
-                            <div class="row-span-3">
-                                <Label class="py-2" for="email">Name Table</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    class="mt-1 block w-full"
-                                    required
-                                    autocomplete="username"
-                                    placeholder="Email address"
-                                />
-                            </div>
-                            <div class="col-span-2"></div>
-                            <div class="col-span-2 row-span-2 " >
-                                <Button class="mx-2 shadow-xl/20"> Add Column</Button>
-                                <Button class="mx-2 shadow-xl/20"> Add Timestamp </Button>
-                                <Button class="mx-2 shadow-xl/20"> Add Softdelete </Button>
-                            
-                            </div>
-                        </div>
-                    
-                        <div class="row-span-5 px-6">
-                            <div class="rounded-md border border-gray-300 overflow-x-auto">
-                                <table class="min-w-full border-collapse text-left">
-                                <thead class="bg-gray-100 border-b">
-                                    <tr>
-                                    <th class="px-4 py-2 border-r">Name</th>
-                                    <th class="px-4 py-2 border-r">Type</th>
-                                    <th class="px-4 py-2 border-r">Length</th>
-                                    <th class="px-4 py-2 border-r">Not Null</th>
-                                    <th class="px-4 py-2 border-r">Unsigned</th>
-                                    <th class="px-4 py-2 border-r">Auto Increment</th>
-                                    <th class="px-4 py-2 border-r">Index</th>
-                                    <th class="px-4 py-2 border-r">Default</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <!-- data rows -->
-                                </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <hr class="h-0.5 my-2 mx-4 bg-gray-200 border-0 dark:bg-gray-700">   
-                    <DialogFooter class="p-6 pt-0">
-                        
-                        <Button @click="isDialogPreview = false">
-                            Simpan
-                        </Button>
-                        <Button class="bg-red-600 hover:bg-amber-600" @click="isDialogPreview = false">
-                            Batal
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </MasterLayout>
+
+        <!-- Delete Confirmation Dialog -->
+        <Dialog v-model:open="isDeleteDialogOpen">
+            <DialogContent class="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Konfirmasi Hapus</DialogTitle>
+                    <DialogDescription>
+                        Apakah Anda yakin ingin menghapus tabel <strong>{{ itemToDeleteId }}</strong>? Tindakan ini tidak dapat dibatalkan.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter class="gap-2 sm:gap-0">
+                    <Button variant="secondary" @click="isDeleteDialogOpen = false">Batal</Button>
+                    <Button variant="destructive" @click="confirmDelete">Hapus</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </AppLayout>
 </template>
