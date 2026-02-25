@@ -20,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if ($url = config('app.url')) {
+            \Illuminate\Support\Facades\URL::forceRootUrl($url);
+        }
+
         if(config('app.env') === 'production' && config('app.force_https', true)) {
              $this->app['request']->server->set('HTTPS','on');
              \Illuminate\Support\Facades\URL::forceScheme('https');
@@ -29,6 +33,5 @@ class AppServiceProvider extends ServiceProvider
             \SocialiteProviders\Manager\SocialiteWasCalled::class,
             [\SocialiteProviders\Keycloak\KeycloakExtendSocialite::class, 'handle']
         );
-
     }
 }

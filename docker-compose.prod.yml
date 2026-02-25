@@ -13,7 +13,8 @@ services:
       - APP_ENV=production
       - APP_KEY=${APP_KEY}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - APP_URL=${APP_URL:-http://localhost:8087}
+      - APP_URL=${APP_URL:-http://localhost:8087/app-pajak}
+      - ASSET_URL=${ASSET_URL:-/app-pajak}
       - APP_FORCE_HTTPS=${APP_FORCE_HTTPS:-false}
       - KEYCLOAK_REDIRECT_URI=http://localhost:8087/auth/sso/callback
       - DB_CONNECTION=mysql
